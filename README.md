@@ -1,47 +1,71 @@
-# House Prices Competition (Kaggle)
+# House Prices: Advanced Regression Techniques (Kaggle)
 
-## Overview
-This project focuses on predicting house prices using machine learning techniques as part of the Kaggle *House Prices: Advanced Regression Techniques* competition. The goal was to build a robust regression model by applying proper data preprocessing, feature engineering, and model evaluation.
+Predicting house sale prices in Ames, Iowa from 79 property features, using a reusable scikit-learn pipeline and a stacked ensemble of 7 Optuna-tuned models.
 
----
+**Result: rank #419 (top 8%) on the Kaggle leaderboard, RMSE 0.12119**, up from rank #734 (RMSE 0.12603) with our best single model in the previous phase.
 
-## Dataset
-- Kaggle House Prices dataset
-- 79 explanatory features describing residential homes
-- Mix of numerical and categorical variables
-- Challenges: missing values, skewed distributions, feature heterogeneity
+Team project (4 students) for the Data Science course at KMUTT, Bangkok.
+**My role:** coordinated the team and was responsible for the modelling: feature engineering, the scikit-learn pipeline, Optuna tuning and the final stacked ensemble.
 
 ---
+
+## Data
+
+- Kaggle *House Prices: Advanced Regression Techniques*
+- 1,460 training homes and 1,459 test homes, 79 features each
+- Target: `SalePrice`, modelled as `log(SalePrice)` because prices are right-skewed
+- Leaderboard metric: RMSE between the log of predicted and actual prices
 
 ## Approach
-- Exploratory Data Analysis (EDA) to understand feature distributions and relationships
-- Data cleaning and handling of missing values
-- Feature engineering and encoding of categorical variables
-- Model training using regression-based machine learning models
-- Hyperparameter tuning to improve generalization
 
----
+The project ran in three phases:
 
-## Evaluation
-- Metric: Root Mean Squared Error (RMSE)
-- Validation using train/validation split and cross-validation
-- Model performance compared against baseline approaches
+1. **Exploration:** distributions, missing data and the strongest relationships with price (overall quality, living area, garage capacity, neighbourhood, exterior quality).
+2. **Single models:** XGBoost, CatBoost, LightGBM and TabPFN, tuned with Optuna. Best: XGBoost, rank #734.
+3. **Stacked ensemble** (this notebook): rank #419.
 
----
+### Feature engineering
+- Size and age: `TotalSF`, `TotalBath`, `PropertyAge`
+- Yes/no flags: `HasPool`, `HasBasement`, `HasFireplace`, `Has2ndFloor`, `HasGarage`, `HasRemodeled`
+- Categorical views of numbers: `YrSold`, `MoSold`, `YearBuilt`, `MSSubClass`
+- Quality interactions: `OverallQual × OverallCond`, `OverallQual × GrLivArea`
+
+### Preprocessing (one scikit-learn `Pipeline`)
+- Feature engineering wrapped in a `FunctionTransformer`
+- Categorical: fill missing with `"None"` (usually means the home has no such feature), then one-hot encode
+- Numerical: fill missing with the mean, then standardise
+
+Keeping every step in one pipeline means training, validation and the final submission all use exactly the same transformations.
+
+### Models
+Each model was tuned with Optuna (about 50 trials, 5-fold cross-validated RMSE on log price):
+
+| Model | Best CV RMSE |
+|---|---|
+| XGBoost | 0.1172 |
+| KernelRidge | 0.1211 |
+| LightGBM | 0.1255 |
+| ExtraTrees | 0.1304 |
+| ElasticNet | 0.1338 |
+| Lasso | 0.1344 |
+| Ridge | 0.1369 |
+
+The seven tuned models are combined with scikit-learn's `StackingRegressor`, using `RidgeCV` as the meta-model (5-fold). CatBoost was also tried, but its tuning was stopped before it finished, so it was left out of the final stack.
 
 ## Results
-- Achieved competitive RMSE on validation data
-- Improved performance through feature engineering and preprocessing
-- Demonstrated stable model behavior across validation folds
 
----
+| Phase | Model | Rank | RMSE |
+|---|---|---|---|
+| 2 | Tuned XGBoost (single model) | #734 | 0.12603 |
+| Final | Stacked ensemble of 7 models | **#419 (top 8%)** | **0.12119** |
 
-## Key Learnings
-- Feature engineering plays a critical role in regression performance
-- Proper preprocessing is essential when working with mixed data types
-- Systematic evaluation helps avoid overfitting in tabular ML problems
+## What I learned
+- A single reproducible pipeline prevents train/test mismatches and makes experiments comparable.
+- Near the top of a leaderboard, small RMSE gains move you a long way: under 0.005 took us from #734 to #419.
+- Stacking improves accuracy but is hard to explain; in a business setting, a simpler model can be the better choice.
 
----
+## Files
+- `ensemble-with-multiple-models.ipynb`: feature engineering, pipeline, Optuna tuning, stacking and submission
 
 ## Tools
-Python, Pandas, NumPy, Scikit-learn, Kaggle
+Python, pandas, NumPy, scikit-learn, Optuna, LightGBM, XGBoost
