@@ -59,13 +59,23 @@ The seven tuned models are combined with scikit-learn's `StackingRegressor`, usi
 | 2 | Tuned XGBoost (single model) | #734 | 0.12603 |
 | Final | Stacked ensemble of 7 models | **#419 (top 8%)** | **0.12119** |
 
+## Known issues
+
+Found when reviewing the notebook after the competition. The code is left as submitted so it matches the leaderboard result; each issue is explained at the end of the notebook.
+
+- **Log transform mismatch:** training uses `np.log`, but predictions are reversed with `np.expm1`, so each prediction is $1 too low (negligible at these prices). Fix: `np.exp`.
+- **High-null columns not dropped:** `df.drop(...)` was not assigned back, so those columns were imputed and encoded instead.
+- **Tree count mismatch:** LightGBM and XGBoost were tuned with 2,000 trees but used 1,000 in the final stack, so they are probably under-trained.
+- **Slightly optimistic CV scores:** preprocessing was fitted before cross-validation instead of inside it.
+- **Not fully reproducible:** Optuna was run without a fixed seed.
+
 ## What I learned
 - A single reproducible pipeline prevents train/test mismatches and makes experiments comparable.
 - Near the top of a leaderboard, small RMSE gains move you a long way: under 0.005 took us from #734 to #419.
 - Stacking improves accuracy but is hard to explain; in a business setting, a simpler model can be the better choice.
 
 ## Files
-- `ensemble-with-multiple-models.ipynb`: feature engineering, pipeline, Optuna tuning, stacking and submission
+- `ensemble-with-multiple-models.ipynb`: feature engineering, pipeline, Optuna tuning, stacking and submission (outputs cleared; recorded results are at the top of the notebook)
 
 ## Tools
 Python, pandas, NumPy, scikit-learn, Optuna, LightGBM, XGBoost
